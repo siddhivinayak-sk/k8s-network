@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: digistore-product-ms-v2
+  name: digistore-product-ms-v2
+spec:
+  ports:
+  - protocol: TCP
+    name: "80"
+    port: 80
+    targetPort: 80
+  selector:
+    app: digistore-product-ms-v2
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: digistore-product-ms-v2
+    myapp: digistore-product-ms-dr
+  name: digistore-product-ms-v2
+spec:
+  selector:
+    matchLabels:
+      app: digistore-product-ms-v2
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: digistore-product-ms-v2
+        myapp: digistore-product-ms-dr
+        version: v2
+    spec:
+#      initContainers:
+#      - name: init-container
+#        image: localhost:5000/alpine-jre-8:latest
+#        command: ["java", "-version"]
+      containers:
+      - name: digistore-product-ms-v2
+        image: siddhivinayaksk/digistore-productms:0.0.2
+        command: ["java"]
+        args: ["-Xmx128m", "-Xss1m", "-jar", "-Dconsole.level=INFO", "/opt/lib/digistore-product-ms.jar"]
+        livenessProbe:
+          httpGet:
+            path: /product/actuator
+            port: 80
+            httpHeaders:
+            - name: Content-Type
+              value: plain/text
+          failureThreshold: 10
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /product/actuator
+            port: 80
+          failureThreshold: 10
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        startupProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 120
+          periodSeconds: 10
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: "250m"
+            memory: "500Mi"
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+      restartPolicy: Always
+status: {}

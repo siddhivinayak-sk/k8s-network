@@ -1,0 +1,140 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: digistore-product-ms
+  name: digistore-product-ms
+spec:
+  ports:
+  - protocol: TCP
+    name: "80"
+    port: 80
+    targetPort: 80
+  selector:
+    app: digistore-product-ms
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: digistore-product-ms-dr
+  name: digistore-product-ms-dr
+spec:
+  ports:
+  - protocol: TCP
+    name: "80"
+    port: 80
+    targetPort: 80
+  selector:
+    myapp: digistore-product-ms-dr
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: digistore-product-ms
+    myapp: digistore-product-ms-dr
+  name: digistore-product-ms
+spec:
+  selector:
+    matchLabels:
+      app: digistore-product-ms
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: digistore-product-ms
+        myapp: digistore-product-ms-dr
+        version: v1
+    spec:
+#      initContainers:
+#      - name: init-container
+#        image: localhost:5000/alpine-jre-8:latest
+#        command: ["java", "-version"]
+      containers:
+      - name: digistore-product-ms
+        image: siddhivinayaksk/digistore-productms:0.0.1
+        command: ["java"]
+        args: ["-Xmx128m", "-Xss1m", "-jar", "-Dconsole.level=INFO", "/opt/lib/digistore-product-ms.jar"]
+        livenessProbe:
+          httpGet:
+            path: /product/actuator
+            port: 80
+            httpHeaders:
+            - name: Content-Type
+              value: plain/text
+          failureThreshold: 10
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /product/actuator
+            port: 80
+          failureThreshold: 10
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        startupProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 120
+          periodSeconds: 10
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: "250m"
+            memory: "500Mi"
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+      restartPolicy: Always
+status: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: digistore-product-ms-ingress
+  annotations:
+    #kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: www.acg-digistore.com
+    http:
+      paths:
+      - path: /product
+        pathType: Prefix
+        backend:
+          service:
+            name: digistore-product-ms
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: digistore-frontend-ms
+            port:
+              number: 80
+  - http:
+      paths:
+      - path: /product
+        pathType: Prefix
+        backend:
+          service:
+            name: digistore-product-ms
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: digistore-frontend-ms
+            port:
+              number: 80
+

@@ -1,0 +1,262 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: ingress-gateway
+  namespace: istio-ingress
+spec:
+  selector:
+    app: istio-ingress
+  servers:
+  - port:
+      number: 443
+      name: https-443
+      protocol: HTTPS
+    hosts:
+    - "*"
+    tls:
+      mode: SIMPLE # enables HTTPS on this port
+      credentialName: istio-ingress-crt
+#      serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
+#      privateKey: /etc/istio/ingressgateway-certs/tls.key
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+    tls:
+      httpsRedirect: true # sends 301 redirect for http requests
+  - port:
+      number: 443
+      name: https-443-pass
+      protocol: HTTPS
+    hosts:
+    - "kube.acg-digistore.com"
+    tls:
+      mode: PASSTHROUGH
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: digistore-frontend-ms
+  namespace: default
+spec:
+  hosts:
+  - www.acg-digistore.com
+  gateways:
+  - istio-ingress/ingress-gateway
+  - mesh # applies to all the sidecars in the mesh
+  http:
+  - match:
+    - uri:
+        prefix: /product
+    route:
+# Route traffic by DestinationRule
+    - destination:
+        port:
+          number: 80 # can be omitted if it's the only port for reviews
+        host: digistore-product-ms-dr.default.svc.cluster.local
+        subset: v1
+      weight: 40
+    - destination:
+        port:
+          number: 80 # can be omitted if it's the only port for reviews
+        host: digistore-product-ms-dr.default.svc.cluster.local
+        subset: v2
+      weight: 60
+# Route traffic by weight
+#    - destination:
+#        port:
+#          number: 80 # can be omitted if it's the only port for reviews
+#        host: digistore-product-ms.default.svc.cluster.local
+#      weight: 80
+#    - destination:
+#        port:
+#          number: 80 # can be omitted if it's the only port for reviews
+#        host: digistore-product-ms-v2.default.svc.cluster.local
+#      weight: 20
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        port:
+          number: 80 # can be omitted if it's the only port for reviews
+        host: digistore-frontend-ms.default.svc.cluster.local
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: digistore-frontend-ms
+  namespace: default
+spec:
+  host: digistore-product-ms-dr.default.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: RANDOM
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: grafana-exp
+  namespace: istio-ingress
+spec:
+  hosts:
+  - grafana.acg-digistore.com
+  gateways:
+  - istio-ingress/ingress-gateway
+  - mesh
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        port:
+          number: 3000
+        host: grafana.istio-system.svc.cluster.local
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: kiali-exp
+  namespace: istio-ingress
+spec:
+  hosts:
+  - kiali.acg-digistore.com
+  gateways:
+  - istio-ingress/ingress-gateway
+  - mesh
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        port:
+          number: 20001
+        host: kiali.istio-system.svc.cluster.local
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: prometheus-exp
+  namespace: istio-ingress
+spec:
+  hosts:
+  - prometheus.acg-digistore.com
+  gateways:
+  - istio-ingress/ingress-gateway
+  - mesh
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        port:
+          number: 9090
+        host: prometheus.istio-system.svc.cluster.local
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: jaeger-exp
+  namespace: istio-ingress
+spec:
+  hosts:
+  - jaeger.acg-digistore.com
+  gateways:
+  - istio-ingress/ingress-gateway
+  - mesh
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        port:
+          number: 80
+        host: tracing.istio-system.svc.cluster.local
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: zipkin-exp
+  namespace: istio-ingress
+spec:
+  hosts:
+  - zipkin.acg-digistore.com
+  gateways:
+  - istio-ingress/ingress-gateway
+  - mesh
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        port:
+          number: 9411
+        host: zipkin.istio-system.svc.cluster.local
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: loki-exp
+  namespace: istio-ingress
+spec:
+  hosts:
+  - loki.acg-digistore.com
+  gateways:
+  - istio-ingress/ingress-gateway
+  - mesh
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        port:
+          number: 9095
+        host: loki.istio-system.svc.cluster.local
+      weight: 100
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: kube-exp
+  namespace: kubernetes-dashboard
+spec:
+  hosts:
+  - kube.acg-digistore.com
+  gateways:
+  - istio-ingress/ingress-gateway
+  - mesh
+  tls:
+  - match:
+    - port: 443
+      sniHosts:
+       - kube.acg-digistore.com
+    route:
+    - destination:
+        port:
+          number: 443
+        host: kubernetes-dashboard.kubernetes-dashboard.svc.cluster.local
+      weight: 100
