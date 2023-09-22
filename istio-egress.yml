@@ -1,0 +1,328 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  generation: 1
+  name: istio-egress
+  namespace: istio
+spec:
+  selector:
+    istio: egress
+  servers:
+  - hosts:
+    - '*'
+    port:
+      name: http2-port
+      number: 80
+      protocol: HTTP2
+  - hosts:
+    - '*'
+    port:
+      name: http-port
+      number: 81
+      protocol: HTTP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin-org-svc
+  namespace: default
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  generation: 1
+  name: httpbin-org-forward-to-gateway-vs
+  namespace: default
+spec:
+  exportTo:
+  - .
+  hosts:
+  - httpbin-org-svc.default.svc.cluster.local
+  http:
+  - match:
+    - port: 80
+    rewrite:
+      authority: 443-httpbin.org
+    route:
+    - destination:
+        host: istio-egress.istio.svc.cluster.local
+        port:
+          number: 80
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  generation: 1
+  name: httpbin-org-rewrite-http-port-to-443-vs
+  namespace: istio
+spec:
+  exportTo:
+  - .
+  gateways:
+  - istio/istio-egress
+  hosts:
+  - 443-httpbin.org
+  http:
+  - match:
+    - gateways:
+      - istio-egress
+      port: 80
+    rewrite:
+      authority: httpbin.org
+    route:
+    - destination:
+        host: httpbin.org
+        port:
+          number: 443
+        subset: "443"
+      headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  generation: 1
+  name: httpbin-org--rewrite-http-to-https-vs
+  namespace: istio
+spec:
+  exportTo:
+  - .
+  gateways:
+  - mesh
+  - istio/istio-egress
+  hosts:
+  - httpbin.org
+  http:
+  - match:
+    - gateways:
+      - mesh
+      port: 80
+    route:
+    - destination:
+        host: istio-egress.istio.svc.cluster.local
+        port:
+          number: 80
+  - match:
+    - gateways:
+      - istio-egress
+      port: 80
+    route:
+    - destination:
+        host: httpbin.org
+        port:
+          number: 443
+        subset: "443"
+      headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  generation: 1
+  name: httpbin-org-se
+  namespace: istio
+spec:
+  exportTo:
+  - .
+  hosts:
+  - httpbin.org
+  location: MESH_EXTERNAL
+  ports:
+  - name: https
+    number: 443
+    protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  generation: 1
+  name: httpbin-org-tls-dr
+  namespace: istio
+spec:
+  exportTo:
+  - .
+  host: httpbin.org
+  subsets:
+  - name: "443"
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+      portLevelSettings:
+      - port:
+          number: 443
+        tls:
+          mode: SIMPLE
+          sni: httpbin.org
+
+
+
+
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: google-com-svc
+  namespace: default
+spec:
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  generation: 1
+  name: google-com-forward-to-gateway-vs
+  namespace: default
+spec:
+  exportTo:
+  - .
+  hosts:
+  - google-com-svc.default.svc.cluster.local
+  http:
+  - match:
+    - port: 80
+    rewrite:
+      authority: 443-google.com
+    route:
+    - destination:
+        host: istio-egress.istio.svc.cluster.local
+        port:
+          number: 80
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  generation: 1
+  name: google-com-rewrite-http-port-to-443-vs
+  namespace: istio
+spec:
+  exportTo:
+  - .
+  gateways:
+  - istio/istio-egress
+  hosts:
+  - 443-google.com
+  http:
+  - match:
+    - gateways:
+      - istio-egress
+      port: 80
+    rewrite:
+      authority: google.com
+    route:
+    - destination:
+        host: google.com
+        port:
+          number: 443
+        subset: "443"
+      headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  generation: 1
+  name: google-com--rewrite-http-to-https-vs
+  namespace: istio
+spec:
+  exportTo:
+  - .
+  gateways:
+  - mesh
+  - istio/istio-egress
+  hosts:
+  - google.com
+  http:
+  - match:
+    - gateways:
+      - mesh
+      port: 80
+    route:
+    - destination:
+        host: istio-egress.istio.svc.cluster.local
+        port:
+          number: 80
+  - match:
+    - gateways:
+      - istio-egress
+      port: 80
+    route:
+    - destination:
+        host: google.com
+        port:
+          number: 443
+        subset: "443"
+      headers:
+        request:
+          set:
+            X-Forwarded-Proto: https
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  generation: 1
+  name: google-com-se
+  namespace: istio
+spec:
+  exportTo:
+  - .
+  hosts:
+  - google.com
+  location: MESH_EXTERNAL
+  ports:
+  - name: https
+    number: 443
+    protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  generation: 1
+  name: google-com-tls-dr
+  namespace: istio
+spec:
+  exportTo:
+  - .
+  host: google.com
+  subsets:
+  - name: "443"
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+      portLevelSettings:
+      - port:
+          number: 443
+        tls:
+          mode: SIMPLE
+          sni: google.com
