@@ -154,7 +154,9 @@ if running on local the /etc/host can be used to add the DNS entries locally
 
 
 #### Egress traffic
+
 There are two ways to implement Egress:
+
 ##### A. Direct to external service
 
 1. Create egress service entry
@@ -212,4 +214,22 @@ kubectl run -it busybox --image=curlimages/curl:latest -- /bin/sh
 curl http://httpbin-org-svc/get
 curl http://google-com
 ```
+
+
+#### Telemetry
+
+By default logs and telemetry are not available but it can be installed if requried.
+
+To enable traffic log on `istio-proxy` create telemetry resource:
+
+```
+kubectl apply -f istio-telemetry.yml
+```
+
+For complete telemetry and other tools, sample installation can be used e.g.:
+
+```
+kubectl apply -f istio-samples/addons
+```
+
 
