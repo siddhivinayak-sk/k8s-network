@@ -12,9 +12,16 @@ spec:
       name: https-443
       protocol: HTTPS
     hosts:
-    - "*"
+#    - "*"
+    - www.acg-digistore.com
+    - grafana.acg-digistore.com
+    - kiali.acg-digistore.com
+    - prometheus.acg-digistore.com
+    - jaeger.acg-digistore.com
+    - zipkin.acg-digistore.com
+    - loki.acg-digistore.com
     tls:
-      mode: SIMPLE # enables HTTPS on this port
+      mode: SIMPLE # enables HTTPS on this port, TLS offload here
       credentialName: istio-ingress-crt
 #      serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
 #      privateKey: /etc/istio/ingressgateway-certs/tls.key
@@ -23,7 +30,14 @@ spec:
       name: http
       protocol: HTTP
     hosts:
-    - "*"
+#    - "*"
+    - www.acg-digistore.com
+    - grafana.acg-digistore.com
+    - kiali.acg-digistore.com
+    - prometheus.acg-digistore.com
+    - jaeger.acg-digistore.com
+    - zipkin.acg-digistore.com
+    - loki.acg-digistore.com
     tls:
       httpsRedirect: true # sends 301 redirect for http requests
   - port:
@@ -106,6 +120,10 @@ spec:
       loadBalancer:
         simple: ROUND_ROBIN
 ---
+
+
+
+# Virtual Service for others hosts
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:

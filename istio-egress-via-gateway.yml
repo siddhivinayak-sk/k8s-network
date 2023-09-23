@@ -3,7 +3,7 @@ kind: Gateway
 metadata:
   generation: 1
   name: istio-egress
-  namespace: istio
+  namespace: istio-egress
 spec:
   selector:
     istio: egress
@@ -57,7 +57,7 @@ spec:
       authority: 443-httpbin.org
     route:
     - destination:
-        host: istio-egress.istio.svc.cluster.local
+        host: istio-egress.istio-egress.svc.cluster.local
         port:
           number: 80
 ---
@@ -66,12 +66,12 @@ kind: VirtualService
 metadata:
   generation: 1
   name: httpbin-org-rewrite-http-port-to-443-vs
-  namespace: istio
+  namespace: istio-egress
 spec:
   exportTo:
   - .
   gateways:
-  - istio/istio-egress
+  - istio-egress/istio-egress
   hosts:
   - 443-httpbin.org
   http:
@@ -97,13 +97,13 @@ kind: VirtualService
 metadata:
   generation: 1
   name: httpbin-org--rewrite-http-to-https-vs
-  namespace: istio
+  namespace: istio-egress
 spec:
   exportTo:
   - .
   gateways:
   - mesh
-  - istio/istio-egress
+  - istio-egress/istio-egress
   hosts:
   - httpbin.org
   http:
@@ -113,7 +113,7 @@ spec:
       port: 80
     route:
     - destination:
-        host: istio-egress.istio.svc.cluster.local
+        host: istio-egress.istio-egress.svc.cluster.local
         port:
           number: 80
   - match:
@@ -136,7 +136,7 @@ kind: ServiceEntry
 metadata:
   generation: 1
   name: httpbin-org-se
-  namespace: istio
+  namespace: istio-egress
 spec:
   exportTo:
   - .
@@ -154,7 +154,7 @@ kind: DestinationRule
 metadata:
   generation: 1
   name: httpbin-org-tls-dr
-  namespace: istio
+  namespace: istio-egress
 spec:
   exportTo:
   - .
@@ -213,7 +213,7 @@ spec:
       authority: 443-google.com
     route:
     - destination:
-        host: istio-egress.istio.svc.cluster.local
+        host: istio-egress.istio-egress.svc.cluster.local
         port:
           number: 80
 ---
@@ -222,12 +222,12 @@ kind: VirtualService
 metadata:
   generation: 1
   name: google-com-rewrite-http-port-to-443-vs
-  namespace: istio
+  namespace: istio-egress
 spec:
   exportTo:
   - .
   gateways:
-  - istio/istio-egress
+  - istio-egress/istio-egress
   hosts:
   - 443-google.com
   http:
@@ -253,13 +253,13 @@ kind: VirtualService
 metadata:
   generation: 1
   name: google-com--rewrite-http-to-https-vs
-  namespace: istio
+  namespace: istio-egress
 spec:
   exportTo:
   - .
   gateways:
   - mesh
-  - istio/istio-egress
+  - istio-egress/istio-egress
   hosts:
   - google.com
   http:
@@ -269,7 +269,7 @@ spec:
       port: 80
     route:
     - destination:
-        host: istio-egress.istio.svc.cluster.local
+        host: istio-egress.istio-egress.svc.cluster.local
         port:
           number: 80
   - match:
@@ -292,7 +292,7 @@ kind: ServiceEntry
 metadata:
   generation: 1
   name: google-com-se
-  namespace: istio
+  namespace: istio-egress
 spec:
   exportTo:
   - .
@@ -310,7 +310,7 @@ kind: DestinationRule
 metadata:
   generation: 1
   name: google-com-tls-dr
-  namespace: istio
+  namespace: istio-egress
 spec:
   exportTo:
   - .

@@ -8,7 +8,7 @@
 
 a. istio installed in istio-system namespace including Jaeger, Kiyali, Zipkin \
 b. istio-ingress namespace created for ingress traffic (gateway, destinationrule, serviceentry) \
-c. by default, all outbound traffic are allowed in istio but it can be blocked and egress gateway can be configured to control the outbound traffic. To do this, edit istio-system (namespace wehre istio installed) -> istio configMap and add below: \
+c. by default, all outbound traffic are allowed (`outboundTrafficPolicy.mode: ALLOW_ANY`) in istio but it can be blocked and egress gateway can be configured to control the outbound traffic. To do this, edit istio-system (namespace wehre istio installed) -> istio configMap and add below: \
 ```
     outboundTrafficPolicy:
       mode: REGISTRY_ONLY
@@ -21,7 +21,9 @@ d. 2 ways for egress \
 
 ##### Install NGINX ingress (optional: if wanted to K8s ingress gateway)
 
+```
 helm -n ingress install ingress ./ingress-nginx
+```
 
 ##### Install istio - There are multiple ways to install istio. 
 
@@ -92,12 +94,8 @@ install istio/ingress-gateway
 helm install istio-ingress istio/gateway -n istio-ingress --wait
 ```
 
-create namespace for installing istio/egress-gateway
-```
-kubectl create namespace istio-egress
-```
-
 mark default namespace to enable isto proxy injector by labelling it
+
 ```
 kubectl label namespace default istio-injection=enabled
 ```
@@ -156,25 +154,60 @@ if running on local the /etc/host can be used to add the DNS entries locally
 
 
 #### Egress traffic
-1. Install egress gateway
-install istio/egress-gateway
+There are two ways to implement Egress:
+##### A. Direct to external service
+
+1. Create egress service entry
+
+```
+kubectl apply -f istio-egress.yml
+```
+
+2. Create a test container for curl
+
+```
+kubectl run -it busybox --image=curlimages/curl:latest -- /bin/sh
+```
+
+3. Test egress traffic
+
+```
+curl http://httpbin.org
+```
+
+
+##### Via Gateway (provides more granular control and telemetry
+
+1. Install egress gateway \
+
 Note: both ingress and egress gateways are same, only difference is, there will not be external ip for egress so service type is set to ClusterIP
+
+create namespace for installing istio/egress-gateway
+
+```
+kubectl create namespace istio-egress
+```
+
+Install the egress gateway
 ```
 helm install istio-egress istio/gateway -n istio-egress --set service.type=ClusterIP --wait
 ```
 
 2. Create istio egress components
+
 ```
-kubectl apply -f istio-egress.yml
+kubectl apply -f istio-egress-via-gateway.yml
 ```
 Note: It has been configured for 2 URLs (httpbin.org and google.com)
 
 3. Create a test container for curl
+
 ```
 kubectl run -it busybox --image=curlimages/curl:latest -- /bin/sh
 ```
 
 4. Test egress traffic
+
 ```
 curl http://httpbin-org-svc/get
 curl http://google-com

@@ -101,7 +101,7 @@ kind: Ingress
 metadata:
   name: digistore-product-ms-ingress
   annotations:
-    #kubernetes.io/ingress.class: nginx
+    kubernetes.io/ingress.class: nginx
 spec:
   rules:
   - host: www.acg-digistore.com
