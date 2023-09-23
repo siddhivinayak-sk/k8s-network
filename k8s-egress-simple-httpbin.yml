@@ -1,0 +1,56 @@
+# Service based egress
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-httpbin
+spec:
+  type: ExternalName
+  externalName: httpbin.org
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: my-httpbin
+spec:
+  host: my-httpbin.default.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-wikipedia
+spec:
+  ports:
+  - protocol: TCP
+    port: 443
+    name: tls
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: my-wikipedia
+subsets:
+  - addresses:
+      - ip: 198.35.26.96
+      - ip: 208.80.153.224
+    ports:
+      - port: 443
+        name: tls
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: my-wikipedia
+spec:
+  host: my-wikipedia.default.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE

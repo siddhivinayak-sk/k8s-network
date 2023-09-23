@@ -188,6 +188,9 @@ create namespace for installing istio/egress-gateway
 
 ```
 kubectl create namespace istio-egress
+
+kubectl label namespace istio-egress istio=egress //Optional: mark this namespace as istio system only required when K8s network policy configured
+kubectl label namespace istio-egress istio-egress=true //Optional: mark this namespace as istio system when K8s network policy configured
 ```
 
 Install the egress gateway

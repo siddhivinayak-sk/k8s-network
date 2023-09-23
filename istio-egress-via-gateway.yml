@@ -1,3 +1,4 @@
+# Egress for httpbin.org
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
@@ -9,13 +10,15 @@ spec:
     istio: egress
   servers:
   - hosts:
-    - '*'
+#    - '*'
+    - 443-httpbin.org
     port:
       name: http2-port
       number: 80
       protocol: HTTP2
   - hosts:
-    - '*'
+#    - '*'
+    - 443-httpbin.org
     port:
       name: http-port
       number: 81
@@ -177,6 +180,7 @@ spec:
 
 
 ---
+# Egress configuraiton for google.com
 apiVersion: v1
 kind: Service
 metadata:
