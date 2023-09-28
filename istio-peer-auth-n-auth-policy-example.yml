@@ -1,0 +1,105 @@
+# Permissive mTLS for namesapce default
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default # if namespace is istio-system then entire mesh will be effected else applied for specific defined namespace
+spec:
+  mtls:
+    mode: PERMISSIVE # STRICT, PERMISSIVE, UNSET (inherit from parent), DISABLE
+---
+# Strict mTLS for namesapce default & workload is finance
+# Workload specific configuraiton takes precedence over namespace wide configuraiton
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: finance
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: finance
+  mtls:
+    mode: STRICT
+  portLevelMtls: # Disable mTLS for specific port 8080
+    8080:
+      mode: DISABLE
+
+---
+# Requires JWT token with given jwks, either provide jwt bearer or don't provide Authorization header else it will result 401 by gateway
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: "jwt-example"
+  namespace: istio-ingress
+spec:
+  selector:
+    matchLabels:
+      istio: ingress
+  jwtRules:
+  - issuer: "testing@secure.istio.io"
+    jwksUri: "https://raw.githubusercontent.com/istio/istio/release-1.19/security/tools/jwt/samples/jwks.json"
+---
+# It will deny all TCP requests without if no valid bearer token
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: "frontend-ingress"
+  namespace: istio-ingress
+spec:
+  selector:
+    matchLabels:
+      istio: ingress
+  action: DENY
+  rules:
+  - from:
+    - source:
+        notRequestPrincipals: ["*"]
+# optional: applied to specific request path
+    to:
+    - operation:
+        paths: ["/headers"]
+---
+# Deny all Http traffic for the namespace
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+  namespace: default
+spec:
+  {}
+---
+# Allow GET operation on specific label
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: "productpage-viewer"
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: productpage
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        methods: ["GET"]
+---
+# Allow GET from bookinfo-productpage service account (deployment template must be mapped with service account) to spcific label
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: "details-viewer"
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: details
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/default/sa/bookinfo-productpage"]
+    to:
+    - operation:
+        methods: ["GET"]
