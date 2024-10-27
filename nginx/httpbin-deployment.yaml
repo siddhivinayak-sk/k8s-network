@@ -1,0 +1,73 @@
+# kubectl create -n kube-ingress secret tls ingress-crt --key=client-private-key.pem --cert=client-certificate.crt
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: httpbin-app
+  name: httpbin-app
+spec:
+  ports:
+  - protocol: TCP
+    name: "80"
+    port: 80
+    targetPort: 80
+  selector:
+    app: httpbin-app
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: httpbin-app
+  name: httpbin-app
+spec:
+  selector:
+    matchLabels:
+      app: httpbin-app
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: httpbin-app
+    spec:
+      containers:
+      - name: httpbin-app
+        image: kennethreitz/httpbin:latest
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "200Mi"
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+      restartPolicy: Always
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: httpbin-app
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  tls:
+  - secretName: ingress-crt
+    hosts:
+    - httpbin.acg-digistore.com
+  rules:
+  - host: httpbin.acg-digistore.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: httpbin-app
+            port:
+              number: 80
