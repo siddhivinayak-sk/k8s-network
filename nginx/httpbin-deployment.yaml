@@ -1,4 +1,4 @@
-# kubectl create -n kube-ingress secret tls ingress-crt --key=client-private-key.pem --cert=client-certificate.crt
+# kubectl create -n default secret tls ingress-crt --key=client-private-key.pem --cert=client-certificate.crt
 apiVersion: v1
 kind: Service
 metadata:
